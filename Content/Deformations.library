@@ -1,0 +1,8 @@
+[Version:1]
+ContentLibrary 
+{
+	var Name = "Deformations"
+	var LibraryId = 0x5b4ddf4b7807f84d
+	var SourceControlType = ""
+	var ReadOnly = false
+}

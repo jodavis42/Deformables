@@ -1,0 +1,9 @@
+[Version:1]
+TextContent 
+{
+	ZilchScriptBuilder 
+	{
+		var Name = "ScriptClothWind"
+		var ResourceId = 0x5b2201a7a59be2d8
+	}
+}

@@ -1,0 +1,17 @@
+[Version:1]
+Material 
+{
+	var RenderGroups = Array
+	{
+		"581cffd64d449122:Opaque"
+		"580269d9a1d6b870:ShadowCasters"
+		"58f4ed78bda39ec5:OpaqueDoubleSided"
+	}
+	AlbedoMap 
+	{
+		var AlbedoMap = "5827bc9481103535:ZeroAlbedo"
+	}
+	FlipBackfaceNormals 
+	{
+	}
+}

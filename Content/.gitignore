@@ -1,0 +1,10 @@
+syntax: glob
+*/ipch/
+*.opensdf
+*.sdf
+*.suo
+*.db
+*.opendb
+*.vs
+
+*-zilchPlugin

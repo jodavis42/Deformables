@@ -1,0 +1,53 @@
+struct ClothGeoInOut
+{
+  [Input][Output] var ViewPosition : Real3;
+  [Input][Output] var PerspectivePosition : Real4;
+  [Input][Output] var ViewNormal : Real3;
+}
+
+[Geometry(maxVertices : 3)]
+struct ClothGeo
+{
+  [BuiltInInput] var ViewToPerspective : Real4x4;
+  function Main(input : TriangleInput[ClothGeoInOut], output : TriangleOutput[ClothGeoInOut])
+  {
+    // Copy input
+    var vertices = FixedArray[ClothGeoInOut, 3]();
+    vertices[0] = input[0];
+    vertices[1] = input[1];
+    vertices[2] = input[2];
+    
+    for(var i = 0; i < 3; ++i)
+    {
+      //if(vertices[i].ViewNormal.Z < 0)
+        vertices[i].ViewNormal *= 0;
+    }
+
+    // Assign new normal
+    //var p1p0 = vertices[1].ViewPosition - vertices[0].ViewPosition;
+    //var p2p0 = vertices[2].ViewPosition - vertices[0].ViewPosition;
+    //var normal = Math.Normalize(Math.Cross(p1p0, p2p0));
+    //
+    //if(normal.Z < 0)
+    //  normal *= -1;
+    //
+    ////var center = (vertices[0].ViewPosition + vertices[1].ViewPosition + vertices[2].ViewPosition) / 3.0;
+    ////for(var i = 0; i < 3; ++i)
+    ////{
+    ////  var offset = vertices[i].ViewPosition - center;
+    ////  offset *= 0.75;
+    ////  vertices[i].ViewPosition = center + offset;
+    ////  vertices[i].PerspectivePosition = Math.Multiply(this.ViewToPerspective, Real4(vertices[i].ViewPosition, 1));
+    ////}
+    //
+    //vertices[0].ViewNormal = normal;
+    //vertices[1].ViewNormal = normal;
+    //vertices[2].ViewNormal = normal;
+
+    // Output triangle
+    output.Append(vertices[0], 0);
+    output.Append(vertices[1], 1);
+    output.Append(vertices[2], 2);
+    output.Restart();
+  }
+}

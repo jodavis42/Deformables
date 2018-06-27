@@ -1,0 +1,12 @@
+syntax: glob
+*.opensdf
+*.sdf
+*.suo
+*.db
+*.opendb
+*.vs
+
+Debug/
+Release/
+ipch/
+Versions/

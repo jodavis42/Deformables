@@ -1,0 +1,51 @@
+class ScriptClothWind : ZilchComponent
+{
+  [Property] var Active : Boolean = true;
+  [Property] var SpaceForce : Boolean = false;
+  [Property] var WindDirection : Real3 = Real3(0, 0, 1);
+  [Property] var WindStrength : Real = 10;
+  
+  function Initialize(init : CogInitializer)
+  {
+    Zero.Connect(this.Owner, "ComputeClothForces", this.OnComputeLocalClothForces);
+    Zero.Connect(this.Space, "ComputeClothForces", this.OnComputeSpaceClothForces);
+  }
+
+  
+  function OnComputeLocalClothForces(event : ClothSpringSystemEvent)
+  {
+    if(!this.SpaceForce)
+      this.ComputeLocalClothForces(event.ClothSystem);
+  }
+  
+  function OnComputeSpaceClothForces(event : ClothSpringSystemEvent)
+  {
+    if(this.SpaceForce)
+      this.ComputeLocalClothForces(event.ClothSystem);
+  }
+  
+  function ComputeLocalClothForces(system : ClothSpringSystem)
+  {
+    var count = system.FaceCount;
+    for(var i = 0; i < count; ++i)
+    {
+      var indices = system.GetFaceIndices(i);
+      var indexA = indices[0];
+      var indexB = indices[1];
+      var indexC = indices[1];
+      var posA = system.GetParticlePosition(indexA);
+      var posB = system.GetParticlePosition(indexB);
+      var posC = system.GetParticlePosition(indexC);
+      
+      var normal = Math.Cross(posB - posA, posC - posA);
+      normal = Math.Normalize(normal);
+      
+      var forceStrength = Math.Dot(this.WindDirection, normal) * this.WindStrength;
+      var force = Math.Abs(forceStrength) * this.WindDirection;
+      
+      system.ApplyParticleForce(indexA, force);
+      system.ApplyParticleForce(indexB, force);
+      system.ApplyParticleForce(indexC, force);
+    }
+  }
+}

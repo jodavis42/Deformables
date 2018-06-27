@@ -1,0 +1,179 @@
+
+
+class ZilchSpringSystem : ZilchComponent
+{
+  var Mesh : Mesh = Mesh.CreateRuntime();
+  
+  [Property] var CountX : Integer = 10;
+  [Property] var CountY : Integer = 10;
+  
+  [Property][Group("Basic")] var StructureK : Real = 10000;
+  [Property][Group("Basic")] var StructureD : Real = 5;
+  [Property][Group("Basic")] var ShearK : Real = 10000;
+  [Property][Group("Basic")] var ShearD : Real = 5;
+  [Property][Group("Basic")] var BendK : Real = 10000;
+  [Property][Group("Basic")] var BendD : Real = 5;
+  [Property][Group("Basic")] var ParticleMass : Real = 1;
+  
+  [Property][Group("Jakobsen")] var ResolvePercent : Real = 1;
+  
+  [Property][Group("AnchorMode")] var FixedLeft : Boolean = true;
+  [Property][Group("AnchorMode")] var FixedRight : Boolean = false;
+  [Property][Group("AnchorMode")] var FixedTop : Boolean = false;
+  [Property][Group("AnchorMode")] var FixedBottom : Boolean = false;
+  
+  function Initialize(init : CogInitializer)
+  {
+    this.Create();
+  }
+  
+  function Create()
+  {
+    var springSystem = this.Owner.ClothSpringSystem;
+    springSystem.SetMesh(this.Mesh);
+    this.Mesh.Vertices.AddAttribute(VertexSemantic.Position, VertexElementType.Real, 3);
+    this.Mesh.Vertices.AddAttribute(VertexSemantic.Uv, VertexElementType.Real, 2);
+    this.Mesh.Vertices.AddAttribute(VertexSemantic.Normal, VertexElementType.Real, 3);
+    
+    var offset = Real3(0, 8, 0);
+    var spacing = 0.25;
+    var invMass = 1 / this.ParticleMass;
+    for(var y = 0; y < this.CountY; ++y)
+    {
+      for(var x = 0; x < this.CountX; ++x)
+      {
+        var pos = Real3(x, -y, 0) * spacing + offset;
+        var index = x + y * this.CountX;
+        springSystem.AddParticle(pos, invMass);
+        
+        var uv = Real2(x, y) / Real2(this.CountX - 1, this.CountY - 1);
+        this.Mesh.Vertices.AddReal(uv);
+        this.Mesh.Vertices.AddReal(Real3());
+        springSystem.AddUv(uv);
+      }
+    }
+    
+    this.CreateSprings();
+    
+    for(var y = 0; y < this.CountY; ++y)
+    {
+      for(var x = 0; x < this.CountX; ++x)
+      {
+        this.CreateFace(Integer2(x, y), Integer2(x + 1, y), Integer2(x + 1, y + 1));
+        this.CreateFace(Integer2(x, y), Integer2(x + 1, y + 1), Integer2(x, y + 1));
+      }
+    }
+    
+    if(this.FixedTop)
+    {
+      for(var i = 0; i < this.CountX; ++i)
+        springSystem.SetParticleInvMass(this.GetIndex(i, 0), 0);
+    }
+    if(this.FixedBottom)
+    {
+      var lastY = this.CountY - 1;
+      for(var i = 0; i < this.CountX; ++i)
+        springSystem.SetParticleInvMass(this.GetIndex(i, lastY), 0);
+    }
+    if(this.FixedLeft)
+    {
+      for(var i = 0; i < this.CountY; ++i)
+        springSystem.SetParticleInvMass(this.GetIndex(0, i), 0);
+    }
+    if(this.FixedRight)
+    {
+      var lastX = this.CountX - 1;
+      for(var i = 0; i < this.CountY; ++i)
+        springSystem.SetParticleInvMass(this.GetIndex(lastX, i), 0);
+    }
+    
+    springSystem.UploadToMesh(this.Mesh);
+    this.Owner.Model.Mesh = this.Mesh;
+  }
+  
+  function CreateSprings()
+  {
+    if(this.Owner.ClothSpringSystem.IntegrationMethod == IntegrationMethod.Jakobsen)
+      this.CreateJakobsenSprings();
+    else
+      this.CreateBasicSprings();
+  }
+  
+  function CreateBasicSprings()
+  {
+    for(var y = 0; y < this.CountY; ++y)
+    {
+      for(var x = 0; x < this.CountX; ++x)
+      {
+        this.CreateSpring(x, y, 1, 0, this.StructureK, this.StructureD);
+        this.CreateSpring(x, y, 0, 1, this.StructureK, this.StructureD);
+        
+        this.CreateSpring(x, y, 1, 1, this.ShearK, this.ShearD);
+        this.CreateSpring(x, y, -1, 1, this.ShearK, this.ShearD);
+      
+        this.CreateSpring(x, y, 2, 0, this.BendK, this.BendD);
+        this.CreateSpring(x, y, 0, 2, this.BendK, this.BendD);
+      }
+    }
+  }
+  
+  function CreateJakobsenSprings()
+  {
+    for(var y = 0; y < this.CountY; ++y)
+    {
+      for(var x = 0; x < this.CountX; ++x)
+      {
+        this.CreateSpring(x, y, 1, 0, this.ResolvePercent, 0);
+        this.CreateSpring(x, y, 0, 1, this.ResolvePercent, 0);
+      }
+    }
+  }
+  
+  function GetIndex(x : Integer, y : Integer) : Integer
+  {
+    return x + y * this.CountX;
+  }
+  
+  function GetIndex(coord : Integer2) : Integer
+  {
+    return this.GetIndex(coord.X, coord.Y);
+  }
+  
+  function IsValidIndex(x : Integer, y : Integer) : Boolean
+  {
+    if(x < 0 || y < 0 || x >= this.CountX || y >= this.CountY)
+      return false;
+    return true;
+  }
+  
+  function IsValidIndex(coord : Integer2) : Boolean
+  {
+    return this.IsValidIndex(coord.X, coord.Y);
+  }
+  
+  function CreateSpring(baseX : Integer, baseY : Integer, offsetX : Integer, offsetY : Integer, k : Real, d : Real)
+  {
+    var x = baseX + offsetX;
+    var y = baseY + offsetY;
+    if(x < 0 || y < 0 || x >= this.CountX || y >= this.CountY)
+      return;
+    
+    var indexA = x + this.CountX * y;
+    var indexB = baseX + this.CountX * baseY;
+    
+    this.Owner.ClothSpringSystem.AddSpring(indexA, indexB, k, d);
+  }
+  
+  function CreateFace(coordA : Integer2, coordB : Integer2, coordC : Integer2)
+  {
+    if(!this.IsValidIndex(coordA) || !this.IsValidIndex(coordB) || !this.IsValidIndex(coordC))
+      return;
+      
+    var indexA = this.GetIndex(coordA);
+    var indexB = this.GetIndex(coordB);
+    var indexC = this.GetIndex(coordC);
+    
+    this.Owner.ClothSpringSystem.AddFace(indexA, indexB, indexC);
+    this.Mesh.Indices {indexA, indexB, indexC};
+  }
+}
