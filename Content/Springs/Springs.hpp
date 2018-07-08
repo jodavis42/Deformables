@@ -27,6 +27,15 @@ public:
   int mIndexC;
 };
 
+//-----------------------------------------------------------------------------ClothAnchor
+class ClothAnchor
+{
+public:
+  int mIndex;
+  Zilch::HandleOf<Cog> mAnchor;
+  Real3 mLocalPosition;
+};
+
 //-----------------------------------------------------------------------------ClothSpringSystemEvent
 class ClothSpringSystemEvent : public ZeroEngine::ZilchEvent
 {
@@ -53,6 +62,7 @@ public:
   void IterateBasicTimestep(Real dt);
   void IterateJakobsenTimestep(Real dt);
 
+  void UpdateAnchors(Real dt);
   void CalcuateGlobalForces(Real dt);
   void CalculateSpringForces(Real dt);
   void SatisfyConstraintsJakobsen(Real dt);
@@ -61,6 +71,8 @@ public:
   void IntegrateVerlet(Real dt);
   void ClearForces();
   void UploadToMesh(ZeroEngine::Mesh* mesh);
+  void UploadToMeshWorld(ZeroEngine::Mesh* mesh, Array<Real3>& normals);
+  void UploadToMeshLocal(ZeroEngine::Mesh* mesh, Array<Real3>& normals);
 
   int GetParticleCount();
   void AddParticle(Real3Param position, Real invMass);
@@ -83,6 +95,15 @@ public:
   int GetFaceIndexB(int index);
   int GetFaceIndexC(int index);
 
+  void AddAnchor(int index, Cog* anchorCog);
+  void ClearAnchors();
+
+  void ClearSystem();
+  void ClearParticles();
+  void ClearSprings();
+  void ClearFaces();
+  void ClearUvs();
+
   void SetMesh(ZeroEngine::Mesh* mesh);
   void AddUv(Real2Param uv);
 
@@ -95,12 +116,15 @@ public:
 
   Array<ClothSpring> mSprings;
   Array<ClothFace> mFaces;
+  Array<ClothAnchor> mAnchors;
   int mSubDivisions;
   int mIterations;
 
   Array<Real2> mUvs;
   Zilch::HandleOf<ZeroEngine::Mesh> mMesh;
   IntegrationMethod::Enum mIntegrationMethod;
+
+  bool mUploadInLocalSpace;
 };
 
 //-----------------------------------------------------------------------------ClothWind

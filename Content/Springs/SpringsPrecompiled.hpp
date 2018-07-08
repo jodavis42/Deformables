@@ -20,7 +20,10 @@ using Zilch::Real2Param;
 using Zilch::Real3;
 using Zilch::Real3Param;
 using Zilch::Integer3;
+using Zilch::Real4x4;
 using Zero::Array;
+using ZeroEngine::Transform;
+using ZeroEngine::Cog;
 
 #include "Springs.hpp"
 // Auto Includes (used by Visual Studio plugins, do not remove this line)

@@ -41,14 +41,17 @@ ZilchDefineType(ClothSpringSystem, builder, type)
   ZilchBindMethod(GetFaceIndexA);
   ZilchBindMethod(GetFaceIndexB);
   ZilchBindMethod(GetFaceIndexC);
+  ZilchBindMethod(AddAnchor);
 
   ZilchBindMethod(UploadToMesh);
   ZilchBindMethod(SetMesh);
   ZilchBindMethod(AddUv);
+  ZilchBindMethod(ClearSystem);
 
   ZilchBindFieldProperty(mSubDivisions);
   ZilchBindFieldProperty(mIterations);
   ZilchBindFieldProperty(mIntegrationMethod);
+  ZilchBindFieldProperty(mUploadInLocalSpace);
 }
 
 ClothSpringSystem::ClothSpringSystem()
@@ -56,6 +59,7 @@ ClothSpringSystem::ClothSpringSystem()
   mSubDivisions = 1;
   mIterations = 1;
   mMesh = nullptr;
+  mUploadInLocalSpace = true;
   mIntegrationMethod = IntegrationMethod::SemiImplicitEuler;
 }
 
@@ -93,11 +97,31 @@ void ClothSpringSystem::IterateBasicTimestep(Real dt)
 
 void ClothSpringSystem::IterateJakobsenTimestep(Real dt)
 {
+  UpdateAnchors(dt);
   CalcuateGlobalForces(dt);
   IntegrateVerlet(dt);
   for(size_t i = 0; i < (size_t)mIterations; ++i)
     SatisfyConstraintsJakobsen(dt);
   ClearForces();
+}
+
+void ClothSpringSystem::UpdateAnchors(Real dt)
+{
+  for (size_t i = 0; i < mAnchors.Size(); ++i)
+  {
+    ClothAnchor& anchor = mAnchors[i];
+    int index = anchor.mIndex;
+
+    Cog* anchorCog = anchor.mAnchor;
+    if (anchorCog == nullptr)
+      continue;
+    Transform* transform = anchorCog->has(Transform);
+    if (transform == nullptr)
+      continue;
+    Real3 worldPoint = transform->TransformPoint(anchor.mLocalPosition);
+    mPositions[index] = worldPoint;
+    mVelocities[index] = mPositions[index] - mOldPositions[index];
+  }
 }
 
 void ClothSpringSystem::CalcuateGlobalForces(Real dt)
@@ -234,13 +258,23 @@ void ClothSpringSystem::UploadToMesh(ZeroEngine::Mesh* mesh)
     Real3& posA = mPositions[face.mIndexA];
     Real3& posB = mPositions[face.mIndexB];
     Real3& posC = mPositions[face.mIndexC];
-    Real3 normal = Math::Normalized(Math::Cross(posB - posA, posC- posA));
+    Real3 normal = Math::Normalized(Math::Cross(posB - posA, posC - posA));
 
     normals[face.mIndexA] += normal;
     normals[face.mIndexB] += normal;
     normals[face.mIndexC] += normal;
   }
 
+  if (mUploadInLocalSpace)
+    UploadToMeshLocal(mesh, normals);
+  else
+    UploadToMeshWorld(mesh, normals);
+
+  mesh->Upload();
+}
+
+void ClothSpringSystem::UploadToMeshWorld(ZeroEngine::Mesh* mesh, Array<Real3>& normals)
+{
   auto vertices = mesh->GetVertices();
   vertices->ClearData();
   for (size_t i = 0; i < mPositions.Size(); ++i)
@@ -249,8 +283,23 @@ void ClothSpringSystem::UploadToMesh(ZeroEngine::Mesh* mesh)
     vertices->AddReal(mUvs[i]);
     vertices->AddReal(normals[i]);
   }
-  
-  mesh->Upload();
+}
+
+void ClothSpringSystem::UploadToMeshLocal(ZeroEngine::Mesh* mesh, Array<Real3>& normals)
+{
+  Transform* transform = GetOwner()->has(Transform);
+  Real4x4 localToWorld = transform->GetWorldMatrix();
+  Real4x4 worldToLocal = localToWorld.Inverted();
+
+  auto vertices = mesh->GetVertices();
+  vertices->ClearData();
+  for (size_t i = 0; i < mPositions.Size(); ++i)
+  {
+    Real3 localPosition = Math::TransformPoint(worldToLocal, mPositions[i]);
+    vertices->AddReal(localPosition);
+    vertices->AddReal(mUvs[i]);
+    vertices->AddReal(normals[i]);
+  }
 }
 
 int ClothSpringSystem::GetParticleCount()
@@ -354,6 +403,61 @@ int ClothSpringSystem::GetFaceIndexB(int index)
 int ClothSpringSystem::GetFaceIndexC(int index)
 {
   return mFaces[index].mIndexC;
+}
+
+void ClothSpringSystem::AddAnchor(int index, Cog* anchorCog)
+{
+  if (anchorCog == nullptr)
+    return;
+
+  Real3 position = mPositions[index];
+  Transform* transform = anchorCog->has(Transform);
+  if (transform == nullptr)
+    return;
+
+  Real3 localPosition = transform->TransformPointInverse(position);
+  ClothAnchor& anchor = mAnchors.PushBack();
+  anchor.mIndex = index;
+  anchor.mAnchor = anchorCog;
+  anchor.mLocalPosition = localPosition;
+}
+
+void ClothSpringSystem::ClearAnchors()
+{
+  mAnchors.Clear();
+}
+
+void ClothSpringSystem::ClearSystem()
+{
+  ClearParticles();
+  ClearSprings();
+  ClearFaces();
+  ClearUvs();
+  ClearAnchors();
+}
+
+void ClothSpringSystem::ClearParticles()
+{
+  mOldPositions.Clear();
+  mPositions.Clear();
+  mInvMasses.Clear();
+  mVelocities.Clear();
+  mForces.Clear();
+}
+
+void ClothSpringSystem::ClearSprings()
+{
+  mSprings.Clear();
+}
+
+void ClothSpringSystem::ClearFaces()
+{
+  mFaces.Clear();
+}
+
+void ClothSpringSystem::ClearUvs()
+{
+  mUvs.Clear();
 }
 
 void ClothSpringSystem::SetMesh(ZeroEngine::Mesh* mesh)

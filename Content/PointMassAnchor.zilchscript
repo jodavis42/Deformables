@@ -1,0 +1,8 @@
+class PointMassAnchor : ZilchComponent
+{
+  [Property] var AttachmentPath : CogPath = CogPath();
+  
+  function Initialize(init : CogInitializer)
+  {
+  }
+}

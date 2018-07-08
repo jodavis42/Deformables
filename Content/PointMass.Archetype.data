@@ -1,0 +1,33 @@
+[Version:1]
+Cog 
+{
+	var Name = ""
+	Transform 
+	{
+		var Translation = Real3{0, 0, 0}
+		var Scale = Real3{0.100000001, 0.100000001, 0.100000001}
+		var Rotation = Quaternion{0, 0, 0, 1}
+	}
+	Model 
+	{
+		var Visible = true
+		var ViewCulling = true
+		var VisibilityEvents = true
+		var OverrideBoundingBox = false
+		var LocalAabbCenter = Real3{0, 0, 0}
+		var LocalAabbHalfExtents = Real3{1, 1, 1}
+		var GroupSortValue = 0
+		var Material = "583afb5e7bf75e18:ZeroMaterial"
+		var Mesh = "4de0354322b376ae:Sphere"
+	}
+	PointMassProperties 
+	{
+		var Mass = 1
+		var Uv = Real2{0, 0}
+		var Locked = false
+	}
+	InvisibleInGame 
+	{
+		var Active = true
+	}
+}

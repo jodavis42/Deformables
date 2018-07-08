@@ -3,9 +3,9 @@ DataContent
 {
 	DataBuilder 
 	{
-		var Name = "Level"
-		var ResourceId = 0x576f215c0825c3a8
-		var LoaderType = "Level"
+		var Name = "ClothFace"
+		var ResourceId = 0x5b07bb9b2beb9f19
+		var LoaderType = "Cog"
 		var Version = 0
 		var ShowInEditor = true
 	}

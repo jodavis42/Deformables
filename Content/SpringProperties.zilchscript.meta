@@ -1,0 +1,9 @@
+[Version:1]
+TextContent 
+{
+	ZilchScriptBuilder 
+	{
+		var Name = "SpringProperties"
+		var ResourceId = 0x5b07bb11c283f5a4
+	}
+}

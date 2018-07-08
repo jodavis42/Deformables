@@ -1,0 +1,10 @@
+class ClothFaceProperties : ZilchComponent
+{
+  [Property] var PointMassAPath : CogPath = CogPath();
+  [Property] var PointMassBPath : CogPath = CogPath();
+  [Property] var PointMassCPath : CogPath = CogPath();
+  
+  function Initialize(init : CogInitializer)
+  {
+  }
+}

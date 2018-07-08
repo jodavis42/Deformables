@@ -1,0 +1,343 @@
+[ComponentInterface]
+class ISpringSystemCreator : ZilchComponent
+{
+  var IsModified : Boolean = false;
+  
+  [Virtual] function UpdateSystem()
+  {
+  }
+}
+
+class ClothCreator : ISpringSystemCreator
+{
+  [Property] var CountX : Integer = 20;
+  [Property] var CountY : Integer = 20;
+  [Property] var Spacing : Real = 1;
+  
+  [Property] var PointMass : Real = 1.0;
+  [Property] var ResolvePercent : Real = 0.5;
+  
+  [Property] var DestroyProxiesInGame : Boolean = true;
+  
+  var PointMassArchetype : Archetype = Archetype.PointMass;
+  var ClothSpringArchetype : Archetype = Archetype.ClothSpring;
+  var ClothFaceArchetype : Archetype = Archetype.ClothFace;
+  
+  var Mesh : Mesh = Mesh.CreateRuntime();
+  
+  var PointMasses : Array[Cog] = Array[Cog]();
+  var SpringCogs : Array[Cog] = Array[Cog]();
+  var FaceCogs : Array[Cog] = Array[Cog]();
+  
+  function Initialize(init : CogInitializer)
+  {
+    this.Collect();
+    this.CreateSpringSystem();
+    
+    Zero.Connect(init, Events.AllObjectsInitialized, this.OnAllObjectsInitialized);
+    if(this.Space.IsEditorMode)
+      Zero.Connect(this.Space, Events.FrameUpdate, this.OnFrameUpdate);
+  }
+
+  function OnAllObjectsInitialized(event : CogInitializerEvent)
+  {
+    if(!this.Space.IsEditorMode && this.DestroyProxiesInGame)
+    {
+      this.Collect();
+      foreach(var cog in this.PointMasses)
+        cog.Destroy();
+      foreach(var cog in this.SpringCogs)
+        cog.Destroy();
+      foreach(var cog in this.FaceCogs)
+        cog.Destroy();
+    }
+  }
+
+  function OnFrameUpdate(event : UpdateEvent)
+  {
+    if(this.IsModified)
+      this.CreateSpringSystem();
+  }
+  
+  [Override] function UpdateSystem()
+  {
+    this.CreateSpringSystem();
+  }
+  
+  [Display] function Create()
+  {
+    var queue = Zero.Editor.OperationQueue;
+    queue.BeginBatch();
+    
+    this.ClearInternal(queue);
+    
+    this.CreatePointMasses(queue);
+    this.CreateSprings(queue);
+    this.CreateFaces(queue);
+    
+    this.CreateSpringSystem();
+    
+    queue.EndBatch();
+  }
+  
+  [Display] function Update()
+  {
+    this.CreateSpringSystem();
+  }
+  
+  [Display] function Clear()
+  {
+    var queue = Zero.Editor.OperationQueue;
+    queue.BeginBatch();
+    
+    this.ClearInternal(queue);
+    
+    queue.EndBatch();
+  }
+  
+  function CreatePointMasses(queue : OperationQueue)
+  {
+    var transform = this.Owner.Transform;
+    var worldPos = transform.WorldTranslation;
+    
+    for(var y = 0; y < this.CountY; ++y)
+    {
+      for(var x = 0; x < this.CountX; ++x)
+      {
+        var pos = Real3(x, y, 0) * this.Spacing;
+        pos += worldPos;
+        var index = x + y * this.CountX;
+        var uv = Real2(x, y) / Real2(this.CountX - 1, this.CountY - 1);
+        
+        var pointMassCog = this.Space.CreateAtPosition(this.PointMassArchetype, pos);
+        pointMassCog.AttachTo(this.Owner);
+        pointMassCog.ClearArchetype();
+        pointMassCog.Name = "PointMass`index`";
+        
+        var pointMass = pointMassCog.PointMassProperties;
+        pointMass.Mass = this.PointMass;
+        pointMass.Uv = uv;
+        
+        queue.ObjectCreated(pointMassCog);
+        this.PointMasses.Add(pointMassCog);
+      }
+    }
+  }
+  
+  function CreateSprings(queue : OperationQueue)
+  {
+    for(var y = 0; y < this.CountY; ++y)
+    {
+      for(var x = 0; x < this.CountX; ++x)
+      {
+        this.CreateSpring(queue, x, y, 1, 0, this.ResolvePercent, 0.0);
+        this.CreateSpring(queue, x, y, 0, 1, this.ResolvePercent, 0.0);
+        
+        //this.CreateSpring(x, y, 1, 1, this.ShearK, this.ShearD);
+        //this.CreateSpring(x, y, -1, 1, this.ShearK, this.ShearD);
+        //
+        //this.CreateSpring(x, y, 2, 0, this.BendK, this.BendD);
+        //this.CreateSpring(x, y, 0, 2, this.BendK, this.BendD);
+      }
+    }
+  }
+  
+  function CreateSpring(queue : OperationQueue, baseX : Integer, baseY : Integer, offsetX : Integer, offsetY : Integer, k : Real, d : Real)
+  {
+    var x = baseX + offsetX;
+    var y = baseY + offsetY;
+    if(x < 0 || y < 0 || x >= this.CountX || y >= this.CountY)
+      return;
+    
+    var indexA = x + this.CountX * y;
+    var indexB = baseX + this.CountX * baseY;
+    
+    var springCog = this.Space.Create(this.ClothSpringArchetype);
+    springCog.AttachTo(this.Owner);
+    springCog.ClearArchetype();
+    this.SpringCogs.Add(springCog);
+    
+    var spring = springCog.SpringProperties;
+    spring.SpringStiffness = k;
+    spring.SpringDamping = d;
+    spring.PointMassAPath.Cog = this.PointMasses[indexA];
+    spring.PointMassBPath.Cog = this.PointMasses[indexB];
+    
+    queue.ObjectCreated(springCog);
+  }
+  
+  function CreateFaces(queue : OperationQueue)
+  {
+    for(var y = 0; y < this.CountY; ++y)
+    {
+      for(var x = 0; x < this.CountX; ++x)
+      {
+        this.CreateFace(queue, Integer2(x, y), Integer2(x + 1, y), Integer2(x + 1, y + 1));
+        this.CreateFace(queue, Integer2(x, y), Integer2(x + 1, y + 1), Integer2(x, y + 1));
+      }
+    }
+  }
+  
+  function CreateFace(queue : OperationQueue, coordA : Integer2, coordB : Integer2, coordC : Integer2)
+  {
+    if(!this.IsValidIndex(coordA) || !this.IsValidIndex(coordB) || !this.IsValidIndex(coordC))
+      return;
+      
+    var indexA = this.GetIndex(coordA);
+    var indexB = this.GetIndex(coordB);
+    var indexC = this.GetIndex(coordC);
+    
+    this.CreateFace(queue, indexA, indexB, indexC);
+  }
+  
+  function CreateFace(queue : OperationQueue, indexA : Integer, indexB : Integer, indexC : Integer)
+  {
+    var clothFaceCog = this.Space.Create(this.ClothFaceArchetype);
+    clothFaceCog.AttachTo(this.Owner);
+    clothFaceCog.ClearArchetype();
+    this.FaceCogs.Add(clothFaceCog);
+    queue.ObjectCreated(clothFaceCog);
+    
+    var face = clothFaceCog.ClothFaceProperties;
+    face.PointMassAPath.Cog = this.PointMasses[indexA];
+    face.PointMassBPath.Cog = this.PointMasses[indexB];
+    face.PointMassCPath.Cog = this.PointMasses[indexC];
+    queue.MarkPropertyAsModified(face, "PointMassAPath");
+    queue.MarkPropertyAsModified(face, "PointMassBPath");
+    queue.MarkPropertyAsModified(face, "PointMassCPath");
+    queue.QueueRegisteredSideEffects();
+  }
+  
+  function ClearInternal(queue : OperationQueue)
+  {
+    var children = this.Owner.ChildrenArray;
+    foreach(var child in children)
+    {
+      queue.DestroyObject(child);
+    }
+    this.ClearMesh();
+    this.PointMasses.Clear();
+  }
+  
+  function Collect()
+  {
+    this.PointMasses.Clear();
+    this.SpringCogs.Clear();
+    this.FaceCogs.Clear();
+    foreach(var child in this.Owner.Children)
+    {
+      if(child.MarkedForDestruction)
+        continue;
+        
+      if(child.PointMassProperties != null)
+        this.PointMasses.Add(child);
+      if(child.SpringProperties != null)
+        this.SpringCogs.Add(child);
+      if(child.ClothFaceProperties != null)
+        this.FaceCogs.Add(child);
+    }
+  }
+  
+  function ClearMesh()
+  {
+    this.Mesh.Vertices.ClearData();
+    this.Mesh.Vertices.ClearAttributes();
+    this.Mesh.Indices.Clear();
+    this.Mesh.Upload();
+  }
+  
+  function CreateSpringSystem()
+  {
+    var springSystem = this.Owner.ClothSpringSystem;
+    springSystem.SetMesh(this.Mesh);
+    this.ClearMesh();
+    this.Mesh.Vertices.AddAttribute(VertexSemantic.Position, VertexElementType.Real, 3);
+    this.Mesh.Vertices.AddAttribute(VertexSemantic.Uv, VertexElementType.Real, 2);
+    this.Mesh.Vertices.AddAttribute(VertexSemantic.Normal, VertexElementType.Real, 3);
+    
+    springSystem.ClearSystem();
+    this.Collect();
+    
+    for(var i = 0; i < this.PointMasses.Count; ++i)
+    {
+      var pointMassCog = this.PointMasses[i];
+      var pointMass = pointMassCog.PointMassProperties;
+      var worldPos = pointMassCog.Transform.WorldTranslation;
+      var invMass = pointMass.GetInvMass();
+        
+      var uv = pointMass.Uv;
+      pointMass.Id = i;
+      
+      springSystem.AddParticle(worldPos, invMass);
+      springSystem.AddUv(uv);
+      
+      var anchor = pointMass.Owner.PointMassAnchor;
+      if(anchor != null)
+        springSystem.AddAnchor(pointMass.Id, anchor.AttachmentPath.Cog);
+    }
+    
+    for(var i = 0; i < this.SpringCogs.Count; ++i)
+    {
+      var springCog = this.SpringCogs[i];
+      var spring = springCog.SpringProperties;
+      var particleACog = spring.PointMassAPath.Cog;
+      var particleBCog = spring.PointMassBPath.Cog;
+      if(particleACog == null || particleBCog == null)
+        continue;
+        
+      var particleA = particleACog.PointMassProperties;
+      var particleB = particleBCog.PointMassProperties;
+      
+      if(particleA == null || particleB == null)
+        continue;
+      springSystem.AddSpring(particleA.Id, particleB.Id, spring.SpringStiffness, spring.SpringDamping);
+    }
+    
+    for(var i = 0; i < this.FaceCogs.Count; ++i)
+    {
+      var faceCog = this.FaceCogs[i];
+      var face = faceCog.ClothFaceProperties;
+      var particleA = this.GetPointMass(face.PointMassAPath);
+      var particleB = this.GetPointMass(face.PointMassBPath);
+      var particleC = this.GetPointMass(face.PointMassCPath);
+
+      if(particleA == null || particleB == null || particleC == null)
+        continue;
+      springSystem.AddFace(particleA.Id, particleB.Id, particleC.Id);
+      this.Mesh.Indices {particleA.Id, particleB.Id, particleC.Id};
+    }
+    
+    springSystem.UploadToMesh(this.Mesh);
+    this.Owner.Model.Mesh = this.Mesh;
+  }
+  
+  function GetPointMass(cogPath : CogPath) : PointMassProperties
+  {
+    var cog = cogPath.Cog;
+    if(cog != null)
+      return cog.PointMassProperties;
+    return null;
+  }
+  
+  function GetIndex(x : Integer, y : Integer) : Integer
+  {
+    return x + y * this.CountX;
+  }
+  
+  function GetIndex(coord : Integer2) : Integer
+  {
+    return this.GetIndex(coord.X, coord.Y);
+  }
+  
+  function IsValidIndex(x : Integer, y : Integer) : Boolean
+  {
+    if(x < 0 || y < 0 || x >= this.CountX || y >= this.CountY)
+      return false;
+    return true;
+  }
+  
+  function IsValidIndex(coord : Integer2) : Boolean
+  {
+    return this.IsValidIndex(coord.X, coord.Y);
+  }
+}

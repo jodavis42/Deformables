@@ -1,0 +1,11 @@
+class SpringProperties : ZilchComponent
+{
+  [Property] var PointMassAPath : CogPath = CogPath();
+  [Property] var PointMassBPath : CogPath = CogPath();
+  [Property] var SpringStiffness : Real = 1;
+  [Property] var SpringDamping : Real = 1;
+  
+  function Initialize(init : CogInitializer)
+  {
+  }
+}

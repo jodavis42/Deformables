@@ -1,0 +1,34 @@
+[RunInEditor]
+class PointMassProperties : ZilchComponent
+{
+  [Property] var Mass : Real = 1.0;
+  [Property] var Uv : Real2;
+  [Property] var Locked : Boolean = false;
+  
+  [Display] var Id : Integer = 0;
+  
+  function Initialize(init : CogInitializer)
+  {
+    // In editor mode, listen for a transformation so we can update the mesh
+    if(this.Space.IsEditorMode)
+      Zero.Connect(this.Owner, Events.TransformUpdated, this.OnTransformUpdated);
+  }
+
+  function OnTransformUpdated(event : ObjectEvent)
+  {
+    var parent = this.Owner.Parent;
+    if(parent == null)
+      return;
+    
+    var springSystem = parent.ISpringSystemCreator;
+    if(springSystem != null)
+      springSystem.UpdateSystem();
+  }
+  
+  function GetInvMass() : Real
+  {
+    if(this.Mass == 0 || this.Locked)
+      return 0;
+    return 1 / this.Mass;
+  }
+}
