@@ -479,6 +479,7 @@ ZilchDefineType(ClothWind, builder, type)
   ZilchBindMethod(Initialize);
 
   // Note: All event connection methods must be bound
+  ZilchBindMethod(OnLogicUpdate);
   ZilchBindMethod(OnComputeLocalClothForces);
   ZilchBindMethod(OnComputeSpaceClothForces);
 
@@ -486,6 +487,9 @@ ZilchDefineType(ClothWind, builder, type)
   ZilchBindFieldProperty(mSpaceForce);
   ZilchBindFieldProperty(mWindDirection);
   ZilchBindFieldProperty(mWindStrength);
+  ZilchBindFieldProperty(mDirectionVariance);
+  ZilchBindFieldProperty(mStrengthVariance);
+  ZilchBindFieldProperty(mDebugDraw);
 }
 
 ClothWind::ClothWind()
@@ -494,6 +498,9 @@ ClothWind::ClothWind()
   mWindStrength = 5;
   mActive = true;
   mSpaceForce = false;
+  mDirectionVariance = 0;
+  mStrengthVariance = 0;
+  mDebugDraw = false;
 }
 
 ClothWind::~ClothWind()
@@ -503,8 +510,44 @@ ClothWind::~ClothWind()
 
 void ClothWind::Initialize(ZeroEngine::CogInitializer* initializer)
 {
+  ZeroConnectThisTo(this->GetSpace(), "LogicUpdate", "OnLogicUpdate");
   ZeroConnectThisTo(this->GetOwner(), "ComputeClothForces", "OnComputeLocalClothForces");
   ZeroConnectThisTo(this->GetSpace(), "ComputeClothForces", "OnComputeSpaceClothForces");
+}
+
+void ClothWind::OnLogicUpdate(ZeroEngine::UpdateEvent* event)
+{
+  mCurrentWindDirection = Math::AttemptNormalized(mWindDirection);
+  mCurrentWindStrength = mWindStrength;
+
+  RandomContext* random = GetOwner()->has(RandomContext);
+  if (random != nullptr)
+  {
+    mCurrentWindStrength = random->RealVariance(mCurrentWindStrength, mStrengthVariance);
+
+    Real directionVarianceRad = Math::DegToRad(mDirectionVariance);
+    Real variance0 = random->RealVariance(0, directionVarianceRad);
+    Real variance1 = random->RealVariance(0, directionVarianceRad);
+    Real3 basis0, basis1;
+    Math::GenerateOrthonormalBasis(mCurrentWindDirection, &basis0, &basis1);
+    mCurrentWindDirection += basis0 * variance0 + basis1 * variance1;
+    Math::AttemptNormalize(mCurrentWindDirection);
+  }
+
+  if(mDebugDraw)
+  {
+    Real3 pos = Real3::cZero;
+
+    Transform* transform = GetOwner()->has(Transform);
+    if(transform != nullptr)
+      pos = transform->GetWorldTranslation();
+
+    Zilch::HandleOf<ZeroEngine::DebugLine> debugLine = ZilchAllocate(ZeroEngine::DebugLine);
+    debugLine->SetStart(pos);
+    debugLine->SetEnd(pos + mCurrentWindDirection * mCurrentWindStrength);
+    debugLine->SetHeadSize(0.5f);
+    ZeroEngine::DebugDraw::Add(debugLine);
+  }
 }
 
 void ClothWind::OnComputeLocalClothForces(ClothSpringSystemEvent* event)
@@ -538,8 +581,8 @@ void ClothWind::ComputeClothForces(ClothSpringSystem* system)
     Real3 normal = Math::Cross(posB - posA, posC - posA);
     normal = Math::Normalized(normal);
 
-    Real forceStrength = Math::Dot(mWindDirection, normal) * mWindStrength;
-    Real3 force = Math::Abs(forceStrength) * mWindDirection;
+    Real forceStrength = Math::Dot(mCurrentWindDirection, normal) * mCurrentWindStrength;
+    Real3 force = Math::Abs(forceStrength) * mCurrentWindDirection;
 
     system->ApplyParticleForce(indexA, force);
     system->ApplyParticleForce(indexB, force);

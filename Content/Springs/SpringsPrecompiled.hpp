@@ -24,6 +24,7 @@ using Zilch::Real4x4;
 using Zero::Array;
 using ZeroEngine::Transform;
 using ZeroEngine::Cog;
+using ZeroEngine::RandomContext;
 
 #include "Springs.hpp"
 // Auto Includes (used by Visual Studio plugins, do not remove this line)

@@ -138,6 +138,7 @@ public:
 
   void Initialize(ZeroEngine::CogInitializer* initializer);
 
+  void OnLogicUpdate(ZeroEngine::UpdateEvent* event);
   void OnComputeLocalClothForces(ClothSpringSystemEvent* event);
   void OnComputeSpaceClothForces(ClothSpringSystemEvent* event);
 
@@ -145,6 +146,13 @@ public:
 
   bool mActive;
   bool mSpaceForce;
+  bool mDebugDraw;
   Real3 mWindDirection;
   Real mWindStrength;
+
+  Real mDirectionVariance;
+  Real mStrengthVariance;
+
+  Real3 mCurrentWindDirection;
+  Real mCurrentWindStrength;
 };

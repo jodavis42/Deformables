@@ -42,15 +42,23 @@ Level
 		{
 			var Active = true
 			var SpaceForce = true
-			var WindDirection = Real3{0, 0, -1}
+			var WindDirection = Real3{-1, 0, 0}
 			var WindStrength = 5
+			var DirectionVariance = 10
+			var StrengthVariance = 1
+			var DebugDraw = false
 		}
 		ScriptClothWind 
 		{
 			var Active = true
 			var SpaceForce = false
-			var WindDirection = Real3{0, 0, 1}
+			var WindDirection = Real3{-1, 0, 0}
 			var WindStrength = 10
+		}
+		RandomContext 
+		{
+			var RandomSeed = false
+			var Seed = 4098244820
 		}
 	}
 	Cog [ContextId:2]
@@ -189,9 +197,9 @@ Level
 		var Name = "EditorCamera"
 		Transform 
 		{
-			var Translation = Real3{-8.15814114, 9.28001022, 7.95827961}
+			var Translation = Real3{3.60118079, 7.62904835, 8.44001389}
 			var Scale = Real3{1, 1, 1}
-			var Rotation = Quaternion{-0.209172174, -0.418790519, -0.0997698978, 0.878013432}
+			var Rotation = Quaternion{-0.165027156, -0.0154901557, -0.00259216782, 0.986164033}
 		}
 		CameraViewport 
 		{
@@ -248,10 +256,10 @@ Level
 		{
 			var ControlMode = ControlMode.Orbit
 			var Previous3DMode = ControlMode.Orbit
-			var LookDistance = 14.5719423
-			var VerticalAngle = 0.467747957
-			var HorizontalAngle = 7.17330265
-			var LookTarget = Real3{1.94996762, 2.70985246, -0.227114871}
+			var LookDistance = 8.83833122
+			var VerticalAngle = 0.331612349
+			var HorizontalAngle = 6.31459761
+			var LookTarget = Real3{3.86364412, 4.7515707, 0.0873295292}
 			var MoveSensitivity = 1
 		}
 	}
@@ -364,6 +372,9 @@ Level
 			var SpaceForce = false
 			var WindDirection = Real3{0, 0, -1}
 			var WindStrength = 20
+			var DirectionVariance = 0
+			var StrengthVariance = 0
+			var DebugDraw = false
 		}
 		ClothCreator 
 		{
@@ -1033,6 +1044,24 @@ Level
 				{
 					var Active = true
 				}
+				PointMassAnchor 
+				{
+					var AttachmentPath = CogPath
+					{
+						var Path = ":/Anchor"
+						var ErrorOnResolveToNull = false
+						var ErrorOnPathCantCompute = false
+						var ErrorOnDirectLinkFail = false
+						var UpdateCogOnPathChange = true
+						var UpdatePathOnCogChange = true
+						var UpdateCogOnInitialize = true
+						var ResolvedNullErrorOccurred = false
+						var Cog = 17
+						var PathPreference0 = CogPathPreference.CogRelative
+						var PathPreference1 = CogPathPreference.SpaceRelative
+						var PathPreference2 = CogPathPreference.Absolute
+					}
+				}
 			}
 			Cog [Id:0x5b0646746038bf9f][ContextId:28]
 			{
@@ -1691,6 +1720,24 @@ Level
 				{
 					var Active = true
 				}
+				PointMassAnchor 
+				{
+					var AttachmentPath = CogPath
+					{
+						var Path = ":/Anchor"
+						var ErrorOnResolveToNull = false
+						var ErrorOnPathCantCompute = false
+						var ErrorOnDirectLinkFail = false
+						var UpdateCogOnPathChange = true
+						var UpdatePathOnCogChange = true
+						var UpdateCogOnInitialize = true
+						var ResolvedNullErrorOccurred = false
+						var Cog = 17
+						var PathPreference0 = CogPathPreference.CogRelative
+						var PathPreference1 = CogPathPreference.SpaceRelative
+						var PathPreference2 = CogPathPreference.Absolute
+					}
+				}
 			}
 			Cog [Id:0x5b064674603503c2][ContextId:48]
 			{
@@ -2010,6 +2057,24 @@ Level
 				InvisibleInGame 
 				{
 					var Active = true
+				}
+				PointMassAnchor 
+				{
+					var AttachmentPath = CogPath
+					{
+						var Path = ":/Anchor"
+						var ErrorOnResolveToNull = false
+						var ErrorOnPathCantCompute = false
+						var ErrorOnDirectLinkFail = false
+						var UpdateCogOnPathChange = true
+						var UpdatePathOnCogChange = true
+						var UpdateCogOnInitialize = true
+						var ResolvedNullErrorOccurred = false
+						var Cog = 17
+						var PathPreference0 = CogPathPreference.CogRelative
+						var PathPreference1 = CogPathPreference.SpaceRelative
+						var PathPreference2 = CogPathPreference.Absolute
+					}
 				}
 			}
 			Cog [Id:0x5b06467460345025][ContextId:58]
@@ -2331,6 +2396,24 @@ Level
 				{
 					var Active = true
 				}
+				PointMassAnchor 
+				{
+					var AttachmentPath = CogPath
+					{
+						var Path = ":/Anchor"
+						var ErrorOnResolveToNull = false
+						var ErrorOnPathCantCompute = false
+						var ErrorOnDirectLinkFail = false
+						var UpdateCogOnPathChange = true
+						var UpdatePathOnCogChange = true
+						var UpdateCogOnInitialize = true
+						var ResolvedNullErrorOccurred = false
+						var Cog = 17
+						var PathPreference0 = CogPathPreference.CogRelative
+						var PathPreference1 = CogPathPreference.SpaceRelative
+						var PathPreference2 = CogPathPreference.Absolute
+					}
+				}
 			}
 			Cog [Id:0x5b06467460379e32][ContextId:68]
 			{
@@ -2650,6 +2733,24 @@ Level
 				InvisibleInGame 
 				{
 					var Active = true
+				}
+				PointMassAnchor 
+				{
+					var AttachmentPath = CogPath
+					{
+						var Path = ":/Anchor"
+						var ErrorOnResolveToNull = false
+						var ErrorOnPathCantCompute = false
+						var ErrorOnDirectLinkFail = false
+						var UpdateCogOnPathChange = true
+						var UpdatePathOnCogChange = true
+						var UpdateCogOnInitialize = true
+						var ResolvedNullErrorOccurred = false
+						var Cog = 17
+						var PathPreference0 = CogPathPreference.CogRelative
+						var PathPreference1 = CogPathPreference.SpaceRelative
+						var PathPreference2 = CogPathPreference.Absolute
+					}
 				}
 			}
 			Cog [Id:0x5b06467460310918][ContextId:78]
@@ -3308,6 +3409,24 @@ Level
 				InvisibleInGame 
 				{
 					var Active = true
+				}
+				PointMassAnchor 
+				{
+					var AttachmentPath = CogPath
+					{
+						var Path = ":/Anchor"
+						var ErrorOnResolveToNull = false
+						var ErrorOnPathCantCompute = false
+						var ErrorOnDirectLinkFail = false
+						var UpdateCogOnPathChange = true
+						var UpdatePathOnCogChange = true
+						var UpdateCogOnInitialize = true
+						var ResolvedNullErrorOccurred = false
+						var Cog = 17
+						var PathPreference0 = CogPathPreference.CogRelative
+						var PathPreference1 = CogPathPreference.SpaceRelative
+						var PathPreference2 = CogPathPreference.Absolute
+					}
 				}
 			}
 			Cog [Id:0x5b0646746032534f][ContextId:98]
